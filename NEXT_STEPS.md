@@ -91,11 +91,12 @@ Vous devez créer une application sur le portail développeur Intuit pour obteni
 
 3. **Remplacer les valeurs par vos vraies clés**
    ```env
-   QUICKBOOKS_CLIENT_ID=AB...votre_client_id_ici
-   QUICKBOOKS_CLIENT_SECRET=...votre_client_secret_ici
-   QUICKBOOKS_REDIRECT_URI=http://localhost:8000/quickbooks/callback
+   QUICKBOOKS_CLIENT_ID=ABgT2eC1hpcPRLUMdZPYtsHwqRCzFgLwhFTENpjtzUj1v7c51L
+   QUICKBOOKS_CLIENT_SECRET=oWO2eZRVGNGsaeEjslDAtj2Y82daUYh5OdS47ZZ7
+   QUICKBOOKS_REDIRECT_URI=http://localhost:8080/quickbooks/callback
    QUICKBOOKS_ENVIRONMENT=sandbox
    ```
+
 
 4. **Sauvegarder et fermer**
    - Dans nano: `Ctrl+X`, puis `Y`, puis `Enter`

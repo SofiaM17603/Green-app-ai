@@ -209,3 +209,4 @@ def enrich_csv(input_file="factures.csv", output_file="factures_enrichies.csv"):
 if access_token:
     download_and_export_all_invoices(access_token, batch_size=50, csv_filename="factures.csv")
     enrich_csv("factures.csv", "factures_enrichies.csv")
+

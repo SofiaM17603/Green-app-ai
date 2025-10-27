@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Green App - Carbon Analytics Platform</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- Export libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <span class="logo-icon">🌱</span>
+                <span class="logo-text">Green App</span>
+                <span class="logo-badge">BETA</span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="#" class="nav-link active" data-page="dashboard" data-i18n="nav.dashboard">Dashboard</a></li>
+                <li><a href="#" class="nav-link" data-page="analyze" data-i18n="nav.analyze">Analyze</a></li>
+                <li><a href="#" class="nav-link" data-page="forecast" data-i18n="nav.forecast">Forecast</a></li>
+                <li><a href="#" class="nav-link" data-page="action-plan" data-i18n="nav.actionplan">Action Plan</a></li>
+                <li><a href="#" class="nav-link" data-page="recommendations" data-i18n="nav.recommendations">Recommendations</a></li>
+            </ul>
+            <!-- Language Toggle Button -->
+            <button id="langToggle" class="lang-toggle" title="Change language">FR</button>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Dashboard Page -->
+        <section id="dashboard-page" class="page active">
+            <div class="page-header-dashboard">
+                <div>
+                    <h1 data-i18n="dashboard.title">Overview</h1>
+                    <p class="subtitle" data-i18n="dashboard.subtitle">Real-time carbon footprint analysis</p>
+                </div>
+                <div class="dashboard-actions">
+                    <button class="btn btn-accent" onclick="openReportModal()" id="generateReportBtn" style="display: none;">
+                        <span>📋</span> <span data-i18n="report.generate">Generate ESG Report</span>
+                    </button>
+                    <button class="btn btn-secondary" onclick="exportDashboardToPDF()">
+                        <span>📄</span> <span data-i18n="export.pdf">Export PDF</span>
+                    </button>
+                    <button class="btn btn-secondary" onclick="exportDashboardToExcel()">
+                        <span>📊</span> <span data-i18n="export.excel">Export Excel</span>
+                    </button>
+                    <button class="btn btn-primary" onclick="navigateTo('analyze')">
+                        <span>📊</span> <span data-i18n="dashboard.analyzeBtn">Analyze Invoices</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div id="dashboardEmpty" class="empty-state">
+                <div class="empty-icon">📈</div>
+                <h2 data-i18n="dashboard.empty.title">Start Your Carbon Analysis</h2>
+                <p data-i18n="dashboard.empty.desc">Upload your first invoices to visualize your carbon footprint and get personalized recommendations</p>
+                <button class="btn btn-primary btn-large" onclick="navigateTo('analyze')" data-i18n="dashboard.empty.action">
+                    Analyze My Invoices
+                </button>
+                <div class="demo-hint">
+                    <p>💡 <span data-i18n="dashboard.empty.hint">Use the file</span> <code data-i18n="dashboard.empty.hintFile">exemple_factures.csv</code> <span data-i18n="dashboard.empty.hintEnd">to test</span></p>
+                </div>
+
+                <!-- Unit Conversion Demo -->
+                <div style="margin-top: 2rem; padding: 1.5rem; background: var(--emerald-50); border-radius: var(--radius-lg); border: 2px dashed var(--emerald-300);">
+                    <h4 style="color: var(--primary); margin-bottom: 1rem;"><span>🌍</span> <span data-i18n="demo.title">Unit Conversion Demo</span></h4>
+                    <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1rem;" data-i18n="demo.subtitle">
+                        Switch language to see automatic unit conversion
+                    </p>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                        <div style="text-align: center; padding: 1rem; background: white; border-radius: var(--radius-md);">
+                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.5rem;" data-i18n="demo.emissions">Emissions</div>
+                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary);" data-value="150" data-unit="co2">150.00 kg CO₂e</div>
+                        </div>
+                        <div style="text-align: center; padding: 1rem; background: white; border-radius: var(--radius-md);">
+                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.5rem;" data-i18n="demo.distance">Distance</div>
+                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary);" data-value="1000" data-unit="distance">1,000.00 km</div>
+                        </div>
+                        <div style="text-align: center; padding: 1rem; background: white; border-radius: var(--radius-md);">
+                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.5rem;" data-i18n="demo.weight">Weight</div>
+                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary);" data-value="50" data-unit="weight">50.00 kg</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Content -->
+            <div id="dashboardContent" style="display: none;">
+                <!-- Advanced Filters Section -->
+                <div class="dashboard-filters-pro">
+                    <div class="filters-header">
+                        <h3 data-i18n="filters.title">Filters</h3>
+                        <div class="filters-actions">
+                            <button class="btn btn-sm btn-secondary" onclick="resetDashboardFilters()" data-i18n="filters.reset">
+                                <span>↺</span> Reset
+                            </button>
+                            <button class="btn btn-sm btn-primary" onclick="applyDashboardFilters()" data-i18n="filters.apply">
+                                <span>✓</span> Apply
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="filters-grid-pro">
+                        <!-- Period Quick Filter -->
+                        <div class="filter-group-pro">
+                            <label data-i18n="filters.period.label">📅 Quick Filters</label>
+                            <div class="filter-pills">
+                                <button class="filter-pill" data-period="all" onclick="selectPeriod('all')" data-i18n="filters.period.all">All Time</button>
+                                <button class="filter-pill" data-period="month" onclick="selectPeriod('month')" data-i18n="filters.period.month">This Month</button>
+                                <button class="filter-pill" data-period="quarter" onclick="selectPeriod('quarter')" data-i18n="filters.period.quarter">This Quarter</button>
+                                <button class="filter-pill active" data-period="year" onclick="selectPeriod('year')" data-i18n="filters.period.year">This Year</button>
+                            </div>
+                            <!-- Hidden select for compatibility -->
+                            <select id="dashboardPeriodFilter" style="display: none;">
+                                <option value="all">All Time</option>
+                                <option value="month">This Month</option>
+                                <option value="quarter">This Quarter</option>
+                                <option value="year" selected>This Year</option>
+                                <option value="custom">Custom Range</option>
+                            </select>
+                        </div>
+
+                        <!-- Custom Calendar Range - Always Visible -->
+                        <div class="filter-group-pro">
+                            <label data-i18n="filters.date.range">📆 Custom Date Range</label>
+                            <div class="calendar-range-picker">
+                                <div class="calendar-input-group">
+                                    <div class="calendar-input-wrapper">
+                                        <label class="calendar-label" data-i18n="filters.date.from">From</label>
+                                        <input type="date" id="dashboardStartDate" class="calendar-input" placeholder="Start date">
+                                    </div>
+                                    <div class="calendar-separator">→</div>
+                                    <div class="calendar-input-wrapper">
+                                        <label class="calendar-label" data-i18n="filters.date.to">To</label>
+                                        <input type="date" id="dashboardEndDate" class="calendar-input" placeholder="End date">
+                                    </div>
+                                </div>
+                                <button class="btn btn-sm btn-primary" onclick="applyCustomDateRange()" data-i18n="filters.apply">
+                                    Apply Range
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Category Filter -->
+                        <div class="filter-group-pro">
+                            <label data-i18n="filters.type.label">🏷️ Category</label>
+                            <div class="filter-pills">
+                                <button class="filter-pill active" data-category="all" onclick="selectCategory('all')" data-i18n="filters.type.all">All Types</button>
+                                <button class="filter-pill" data-category="voyages_aeriens" onclick="selectCategory('voyages_aeriens')">
+                                    <span>✈️</span> <span data-i18n="category.voyages_aeriens">Air Travel</span>
+                                </button>
+                                <button class="filter-pill" data-category="transport_routier" onclick="selectCategory('transport_routier')">
+                                    <span>🚚</span> <span data-i18n="category.transport_routier">Road Transport</span>
+                                </button>
+                                <button class="filter-pill" data-category="energie" onclick="selectCategory('energie')">
+                                    <span>⚡</span> <span data-i18n="category.energie">Energy</span>
+                                </button>
+                                <button class="filter-pill" data-category="materiaux" onclick="selectCategory('materiaux')">
+                                    <span>🏗️</span> <span data-i18n="category.materiaux">Materials</span>
+                                </button>
+                                <button class="filter-pill" data-category="services" onclick="selectCategory('services')">
+                                    <span>💼</span> <span data-i18n="category.services">Services</span>
+                                </button>
+                                <button class="filter-pill" data-category="equipements" onclick="selectCategory('equipements')">
+                                    <span>🔧</span> <span data-i18n="category.equipements">Equipment</span>
+                                </button>
+                                <button class="filter-pill" data-category="autres" onclick="selectCategory('autres')">
+                                    <span>📦</span> <span data-i18n="category.autres">Other</span>
+                                </button>
+                            </div>
+                            <!-- Hidden select for compatibility -->
+                            <select id="dashboardTypeFilter" style="display: none;">
+                                <option value="all">All Types</option>
+                                <option value="voyages_aeriens">Air Travel</option>
+                                <option value="transport_routier">Road Transport</option>
+                                <option value="energie">Energy</option>
+                                <option value="materiaux">Materials</option>
+                                <option value="services">Services</option>
+                                <option value="equipements">Equipment</option>
+                                <option value="autres">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KPI Cards -->
+                <div class="kpi-grid">
+                    <div class="kpi-card primary-kpi">
+                        <div class="kpi-header">
+                            <span class="kpi-icon">🌍</span>
+                            <span class="kpi-label" data-i18n="dashboard.kpi.carbonScore">Carbon Score</span>
+                        </div>
+                        <div class="kpi-value-large" id="carbonScore">--</div>
+                        <div class="kpi-sublabel" data-i18n="dashboard.kpi.outOf">out of 100</div>
+                        <div class="kpi-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="scoreProgress"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <span class="kpi-icon">☁️</span>
+                            <span class="kpi-label" data-i18n="dashboard.kpi.totalEmissions">Total Emissions</span>
+                        </div>
+                        <div class="kpi-value" id="totalEmissionsDash">--</div>
+                        <div class="kpi-unit" data-i18n="unit.kgco2e">kg CO₂e</div>
+                    </div>
+
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <span class="kpi-icon">📄</span>
+                            <span class="kpi-label" data-i18n="dashboard.kpi.invoicesAnalyzed">Analyzed Invoices</span>
+                        </div>
+                        <div class="kpi-value" id="totalInvoicesDash">--</div>
+                        <div class="kpi-unit" data-i18n="dashboard.kpi.invoices">invoices</div>
+                    </div>
+
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <span class="kpi-icon">📊</span>
+                            <span class="kpi-label" data-i18n="dashboard.kpi.monthChange">This month vs previous</span>
+                        </div>
+                        <div class="kpi-value" id="monthChange">--</div>
+                        <div class="kpi-trend" id="trendIndicator"></div>
+                    </div>
+                </div>
+
+                <!-- Charts Grid -->
+                <div class="charts-grid">
+                    <!-- Row 1: Monthly Evolution + Distribution by Category -->
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3 data-i18n="dashboard.chart.timeline.title">Monthly Evolution</h3>
+                            <p data-i18n="dashboard.chart.timeline.subtitle">Your emissions timeline</p>
+                        </div>
+                        <div class="chart-body">
+                            <canvas id="timelineChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3 data-i18n="dashboard.chart.category.title">Distribution by Category</h3>
+                            <p data-i18n="dashboard.chart.category.subtitle">Your emissions breakdown</p>
+                        </div>
+                        <div class="chart-body">
+                            <canvas id="categoryChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Row 2: Progress Tracker + Top Suppliers -->
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3 data-i18n="dashboard.chart.comparison.title">Progress Tracker</h3>
+                            <p data-i18n="dashboard.chart.comparison.subtitle">Track your emissions reduction progress</p>
+                        </div>
+                        <div class="chart-body">
+                            <canvas id="comparisonChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3 data-i18n="charts.supplier.title">Top Suppliers by Emissions</h3>
+                            <p data-i18n="charts.supplier.subtitle">Identify high-impact suppliers</p>
+                        </div>
+                        <div class="chart-body">
+                            <canvas id="supplierChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Categories -->
+                <div class="insights-section">
+                    <h2 data-i18n="dashboard.insights.title">Top Contributors</h2>
+                    <div id="topCategoriesList" class="top-categories-grid"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Analyze Page -->
+        <section id="analyze-page" class="page">
+            <div class="page-header">
+                <h1 data-i18n="analyze.title">Analyze My Invoices</h1>
+                <p data-i18n="analyze.subtitle">Upload a CSV file to automatically calculate your carbon emissions</p>
+            </div>
+
+            <!-- Two-column layout for Upload and QuickBooks -->
+            <div class="analyze-options-grid">
+                <!-- CSV Upload Section -->
+                <div class="analyze-option-card">
+                    <div class="upload-card">
+                        <div class="upload-header">
+                            <div class="upload-header-icon">📁</div>
+                            <div>
+                                <h3 data-i18n="analyze.upload.title">Upload CSV File</h3>
+                                <p data-i18n="analyze.upload.header.subtitle">Upload your invoice data from a CSV file</p>
+                            </div>
+                        </div>
+
+                        <div class="upload-section">
+                            <div class="upload-box" id="uploadBox">
+                                <div class="upload-icon">📂</div>
+                                <p class="upload-text" data-i18n="analyze.upload.drag">Drag and drop your CSV file here</p>
+                                <p class="upload-subtext" data-i18n="analyze.upload.or">or</p>
+                                <label for="fileInput" class="btn btn-secondary" data-i18n="analyze.upload.browse">Browse Files</label>
+                                <input type="file" id="fileInput" accept=".csv" style="position: absolute; opacity: 0; width: 0.1px; height: 0.1px; overflow: hidden; z-index: -1;">
+                                <div class="upload-hint">
+                                    <p data-i18n="analyze.upload.format">Format: InvoiceId, Date, ClientId, Label, Total Amount</p>
+                                </div>
+                            </div>
+
+                            <div id="fileInfo" class="file-info" style="display: none;">
+                                <p><strong data-i18n="analyze.file.selected">Selected file:</strong> <span id="fileName"></span></p>
+                                <button class="btn btn-primary" onclick="uploadFile()" data-i18n="analyze.file.analyze">Analyze</button>
+                                <button class="btn btn-secondary" onclick="resetUpload()" data-i18n="analyze.file.cancel">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- QuickBooks Integration Section -->
+                <div class="analyze-option-card">
+                    <div class="quickbooks-card">
+                        <div class="quickbooks-header">
+                            <div class="quickbooks-logo">💼</div>
+                            <div>
+                                <h3 data-i18n="analyze.qb.title">Import from QuickBooks Online</h3>
+                                <p data-i18n="analyze.qb.subtitle">Automatically sync your invoices without manual export</p>
+                            </div>
+                        </div>
+
+                    <!-- QuickBooks Status -->
+                    <div id="qbStatusCard" class="qb-status-card" style="display: none;">
+                        <div class="qb-status-content">
+                            <span class="qb-status-icon">✅</span>
+                            <div>
+                                <div class="qb-status-label" data-i18n="analyze.qb.connected">Connected to</div>
+                                <div class="qb-company-name" id="qbCompanyName">--</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Not Connected State -->
+                    <div id="qbConnectSection" class="qb-connect-section">
+                        <p class="qb-description" data-i18n="analyze.qb.description">
+                            Connect your QuickBooks account to automatically import your invoices and analyze your carbon emissions.
+                        </p>
+                        <button class="btn btn-primary btn-large" onclick="connectQuickBooks()">
+                            <span>🔗</span> <span data-i18n="analyze.qb.connect">Connect QuickBooks</span>
+                        </button>
+                    </div>
+
+                    <!-- Connected State -->
+                    <div id="qbSyncSection" class="qb-sync-section" style="display: none;">
+                        <div class="qb-sync-options">
+                            <div class="qb-option">
+                                <label for="qbStartDate" data-i18n="analyze.qb.startDate">Start Date</label>
+                                <input type="date" id="qbStartDate" class="qb-date-input">
+                            </div>
+                            <div class="qb-option">
+                                <label for="qbEndDate" data-i18n="analyze.qb.endDate">End Date</label>
+                                <input type="date" id="qbEndDate" class="qb-date-input">
+                            </div>
+                        </div>
+
+                        <div class="qb-actions">
+                            <button class="btn btn-success btn-large" onclick="syncQuickBooksInvoices()">
+                                <span>🔄</span> <span data-i18n="analyze.qb.sync">Synchronize Invoices</span>
+                            </button>
+                            <button class="btn btn-ghost" onclick="disconnectQuickBooks()" data-i18n="analyze.qb.disconnect">
+                                Disconnect
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- QuickBooks Loading -->
+                    <div id="qbLoading" class="qb-loading" style="display: none;">
+                        <div class="spinner"></div>
+                        <p id="qbLoadingText" data-i18n="analyze.qb.loading">Synchronizing...</p>
+                    </div>
+                </div>
+            </div>
+            </div>
+
+            <div id="analysisResults" class="results-section" style="display: none;">
+                <h2>✅ <span data-i18n="analyze.results.title">Analysis Complete</span></h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalEmissions">0</div>
+                        <div class="stat-label" data-i18n="analyze.results.totalEmissions">total kg CO₂e</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="invoicesCount">0</div>
+                        <div class="stat-label" data-i18n="analyze.results.invoicesAnalyzed">Analyzed invoices</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="avgEmissions">0</div>
+                        <div class="stat-label" data-i18n="analyze.results.avgEmissions">average kg CO₂e</div>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-success" onclick="downloadEnrichedFile()">
+                        💾 <span data-i18n="analyze.results.download">Download Enriched File</span>
+                    </button>
+                    <button class="btn btn-primary" onclick="navigateTo('dashboard')">
+                        📊 <span data-i18n="analyze.results.viewDashboard">View Dashboard</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="loadingSpinner" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p data-i18n="analyze.loading">Analyzing...</p>
+            </div>
+
+            <!-- My Files Section (integrated in Analyze page) -->
+            <div class="section-divider" style="margin-top: 4rem;">
+                <span data-i18n="files.title">My Files</span>
+            </div>
+
+            <div class="files-stats-bar">
+                <div class="files-stat">
+                    <span class="files-stat-icon">📁</span>
+                    <div>
+                        <div class="files-stat-value" id="totalFilesCount">0</div>
+                        <div class="files-stat-label" data-i18n="files.stats.files">Files</div>
+                    </div>
+                </div>
+                <div class="files-stat">
+                    <span class="files-stat-icon">☁️</span>
+                    <div>
+                        <div class="files-stat-value" id="totalFilesEmissions">0</div>
+                        <div class="files-stat-label" data-i18n="files.stats.totalEmissions">total emissions</div>
+                    </div>
+                </div>
+                <div class="files-stat">
+                    <span class="files-stat-icon">📄</span>
+                    <div>
+                        <div class="files-stat-value" id="totalFilesInvoices">0</div>
+                        <div class="files-stat-label" data-i18n="files.stats.invoices">Invoices</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empty State pour Files -->
+            <div id="filesEmpty" class="empty-state">
+                <div class="empty-icon">📂</div>
+                <h2 data-i18n="files.empty.title">No Analyzed Files</h2>
+                <p data-i18n="files.empty.desc">Upload your first file to start tracking your carbon emissions</p>
+            </div>
+
+            <!-- Files List -->
+            <div id="filesList" class="files-grid" style="display: none;"></div>
+
+            <div id="filesLoading" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p data-i18n="files.loading">Loading files...</p>
+            </div>
+        </section>
+
+        <!-- Forecast Page -->
+        <section id="forecast-page" class="page">
+            <div class="page-header">
+                <h1 data-i18n="forecast.title">Carbon Forecast</h1>
+                <p data-i18n="forecast.subtitle">Intelligent emission projections with budget tracking</p>
+            </div>
+
+            <!-- Forecast Controls -->
+            <div class="forecast-controls">
+                <div class="forecast-options">
+                    <div class="option-group">
+                        <label data-i18n="forecast.options.periods">Periods:</label>
+                        <select id="forecastPeriods" class="form-select">
+                            <option value="3">3</option>
+                            <option value="6" selected>6</option>
+                            <option value="9">9</option>
+                            <option value="12">12</option>
+                        </select>
+                    </div>
+                    <div class="option-group">
+                        <label data-i18n="forecast.options.frequency">Frequency:</label>
+                        <select id="forecastFrequency" class="form-select">
+                            <option value="monthly" selected data-i18n="forecast.frequency.monthly">Monthly</option>
+                            <option value="quarterly" data-i18n="forecast.frequency.quarterly">Quarterly</option>
+                        </select>
+                    </div>
+                    <div class="option-group">
+                        <label data-i18n="forecast.options.budget">Budget (optional):</label>
+                        <input type="file" id="budgetFile" accept=".csv" class="form-file">
+                    </div>
+                </div>
+                <button class="btn btn-primary btn-large" onclick="generateForecast()">
+                    <span>🔮</span> <span data-i18n="forecast.generate">Generate Forecast</span>
+                </button>
+            </div>
+
+            <!-- Forecast Summary Cards -->
+            <div id="forecastSummary" class="forecast-summary" style="display: none;">
+                <div class="summary-card-grid">
+                    <div class="summary-card">
+                        <div class="summary-icon">📊</div>
+                        <div class="summary-data">
+                            <div class="summary-value" id="avgForecast">--</div>
+                            <div class="summary-label" data-i18n="forecast.summary.avgForecast">Avg. Forecast</div>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-icon">📈</div>
+                        <div class="summary-data">
+                            <div class="summary-value" id="trendDirection">--</div>
+                            <div class="summary-label" data-i18n="forecast.summary.trend">Trend</div>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-icon">🎯</div>
+                        <div class="summary-data">
+                            <div class="summary-value" id="budgetStatus">--</div>
+                            <div class="summary-label" data-i18n="forecast.summary.budgetStatus">Budget Status</div>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-icon">⚠️</div>
+                        <div class="summary-data">
+                            <div class="summary-value" id="alertCount">--</div>
+                            <div class="summary-label" data-i18n="forecast.summary.alerts">Active Alerts</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Budget Alerts -->
+            <div id="forecastAlerts" class="forecast-alerts" style="display: none;">
+                <!-- Alerts will be dynamically inserted here -->
+            </div>
+
+            <!-- Forecast Chart -->
+            <div id="forecastChart" class="chart-container-large" style="display: none;">
+                <canvas id="forecastCanvas"></canvas>
+            </div>
+
+            <!-- Category Breakdown -->
+            <div id="forecastCategories" class="forecast-categories" style="display: none;">
+                <h2 data-i18n="forecast.categories.title">Forecast by Category</h2>
+                <div id="categoriesGrid" class="categories-grid">
+                    <!-- Category cards will be dynamically inserted here -->
+                </div>
+            </div>
+
+            <!-- Recommendations -->
+            <div id="forecastRecommendations" class="forecast-recommendations" style="display: none;">
+                <h2 data-i18n="forecast.recommendations.title">Recommended Actions</h2>
+                <div id="recommendationsList" class="recommendations-list">
+                    <!-- Recommendations will be dynamically inserted here -->
+                </div>
+            </div>
+
+            <!-- Loading State -->
+            <div id="forecastLoading" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p data-i18n="forecast.loading">Generating intelligent forecast...</p>
+            </div>
+
+            <!-- Error State -->
+            <div id="forecastError" class="error-message" style="display: none;"></div>
+        </section>
+
+        <!-- Action Plan Page -->
+        <section id="action-plan-page" class="page">
+            <div class="page-header">
+                <h1 data-i18n="actionplan.title">Climate Action Plan</h1>
+                <p class="subtitle" data-i18n="actionplan.subtitle">Your personalized roadmap to reduce emissions</p>
+            </div>
+
+            <!-- Summary Cards -->
+            <div id="actionPlanSummary" class="action-summary" style="display: none;">
+                <div class="summary-card-grid">
+                    <div class="summary-card">
+                        <div class="summary-icon">🎯</div>
+                        <div class="summary-data">
+                            <div class="summary-value" id="totalActions">--</div>
+                            <div class="summary-label" data-i18n="actionplan.summary.totalActions">Total Actions</div>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-icon">🌱</div>
+                        <div class="summary-data">
+                            <div class="summary-value" id="potentialReduction">--</div>
+                            <div class="summary-label" data-i18n="actionplan.summary.potentialReduction">Potential Reduction</div>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-icon">⚡</div>
+                        <div class="summary-data">
+                            <div class="summary-value" id="highPriority">--</div>
+                            <div class="summary-label" data-i18n="actionplan.summary.highPriority">High Priority</div>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-icon">✅</div>
+                        <div class="summary-data">
+                            <div class="summary-value" id="completedActions">0</div>
+                            <div class="summary-label" data-i18n="actionplan.summary.completed">Completed</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions Controls -->
+            <div class="actions-controls">
+                <div class="filters-group">
+                    <button class="filter-btn active" data-filter="all" data-i18n="actionplan.filter.all">All Actions</button>
+                    <button class="filter-btn" data-filter="high" data-i18n="actionplan.filter.high">High Priority</button>
+                    <button class="filter-btn" data-filter="medium" data-i18n="actionplan.filter.medium">Medium Priority</button>
+                    <button class="filter-btn" data-filter="low" data-i18n="actionplan.filter.low">Low Priority</button>
+                </div>
+                <div class="export-group">
+                    <button class="btn btn-secondary" onclick="exportToCalendar('google')" title="Export to Google Calendar">
+                        <span>📅</span> <span data-i18n="actionplan.export.google">Google Calendar</span>
+                    </button>
+                    <button class="btn btn-secondary" onclick="exportToCalendar('ics')" title="Download ICS file">
+                        <span>💾</span> <span data-i18n="actionplan.export.ics">Download .ics</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Generate Plan Button (shown when no data) -->
+            <div id="actionPlanEmpty" class="empty-state">
+                <div class="empty-icon">📋</div>
+                <h2 data-i18n="actionplan.empty.title">Generate Your Action Plan</h2>
+                <p data-i18n="actionplan.empty.desc">Create a personalized climate action plan based on your emissions data</p>
+                <button class="btn btn-primary btn-large" onclick="generateActionPlan()">
+                    <span>🚀</span> <span data-i18n="actionplan.empty.action">Generate Action Plan</span>
+                </button>
+            </div>
+
+            <!-- Actions List -->
+            <div id="actionsList" class="actions-grid" style="display: none;">
+                <!-- Actions will be dynamically inserted here -->
+            </div>
+
+            <!-- Loading State -->
+            <div id="actionPlanLoading" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p data-i18n="actionplan.loading">Generating your action plan...</p>
+            </div>
+        </section>
+
+        <!-- Recommendations Page -->
+        <section id="recommendations-page" class="page">
+            <div class="page-header">
+                <h1 data-i18n="recommendations.title">Recommendations</h1>
+                <p data-i18n="recommendations.subtitle">Concrete actions to reduce your carbon footprint</p>
+            </div>
+
+            <div id="recommendationsSummary" class="recommendations-summary" style="display: none;">
+                <div class="summary-card">
+                    <h3 data-i18n="recommendations.summary.title">Reduction Potential</h3>
+                    <div class="potential-value" id="potentialReduction">--</div>
+                    <p data-i18n="recommendations.summary.unit">saveable</p>
+                </div>
+            </div>
+
+            <div class="recommendations-controls">
+                <button class="btn btn-primary" onclick="getRecommendations()">
+                    💡 <span data-i18n="recommendations.action">Get Recommendations</span>
+                </button>
+            </div>
+
+            <div id="recommendationsList" class="recommendations-list" style="display: none;"></div>
+
+            <div id="recommendationsLoading" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p data-i18n="recommendations.loading">Generating recommendations...</p>
+            </div>
+        </section>
+    </div>
+
+    <!-- ESG Report Modal -->
+    <div id="reportModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>📋 <span data-i18n="report.modal.title">Generate ESG/CSR Report</span></h2>
+                <button class="modal-close" onclick="closeReportModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem;" data-i18n="report.modal.description">
+                    Generate a professional carbon report compliant with ADEME and GHG Protocol standards.
+                </p>
+
+                <div class="form-group">
+                    <label><span data-i18n="report.modal.language">Language</span></label>
+                    <div class="radio-group">
+                        <label class="radio-option">
+                            <input type="radio" name="reportLang" value="fr" checked>
+                            <span>🇫🇷 Français</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="reportLang" value="en">
+                            <span>🇬🇧 English</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label><span data-i18n="report.modal.format">Format</span></label>
+                    <div class="radio-group">
+                        <label class="radio-option">
+                            <input type="radio" name="reportFormat" value="pdf" checked>
+                            <span>📄 PDF</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="reportFormat" value="docx">
+                            <span>📝 DOCX</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label><span data-i18n="report.modal.commitments">Climate Commitments</span> <span style="color: var(--text-muted);">(optional)</span></label>
+                    <textarea id="climateCommitments" rows="3" placeholder="E.g., We commit to reducing our emissions by 50% by 2030..." style="width: 100%; padding: 0.75rem; border: 1px solid var(--emerald-200); border-radius: var(--radius-md); font-family: inherit; resize: vertical;"></textarea>
+                </div>
+
+                <div class="report-info-box">
+                    <p style="font-size: 0.875rem; color: var(--text-secondary);">
+                        <strong data-i18n="report.modal.includes">Report includes:</strong>
+                        <ul style="margin: 0.5rem 0 0 1.5rem; line-height: 1.6;">
+                            <li data-i18n="report.modal.feature1">Executive summary with key metrics</li>
+                            <li data-i18n="report.modal.feature2">Emissions breakdown by scope and category</li>
+                            <li data-i18n="report.modal.feature3">Monthly evolution charts</li>
+                            <li data-i18n="report.modal.feature4">Regulatory benchmarks (BEGES, SBT)</li>
+                            <li data-i18n="report.modal.feature5">Actionable recommendations</li>
+                        </ul>
+                    </p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeReportModal()" data-i18n="report.modal.cancel">Cancel</button>
+                <button class="btn btn-primary" onclick="generateESGReport()" data-i18n="report.modal.generate">
+                    Generate Report
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <p data-i18n="footer.copyright">© 2025 Green App - Carbon Analytics Platform</p>
+            <p class="footer-tagline" data-i18n="footer.tagline">Measure, analyze, reduce your carbon footprint</p>
+        </div>
+    </footer>
+
+    <script src="lang.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="page.title">Green App - Carbon Dashboard</title>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <!-- jsPDF for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <!-- XLSX for Excel export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="dashboard-header">
+        <div class="header-content">
+            <div class="logo-section">
+                <h1 class="logo">🌱 Green App</h1>
+                <p class="tagline" data-i18n="header.tagline">Carbon Analytics Dashboard</p>
+            </div>
+            <div class="header-actions">
+                <button id="langToggle" class="btn-lang" aria-label="Toggle Language">EN</button>
+                <button id="exportPdfBtn" class="btn-export" data-i18n="export.pdf">
+                    📄 Export PDF
+                </button>
+                <button id="exportExcelBtn" class="btn-export" data-i18n="export.excel">
+                    📊 Export Excel
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="dashboard-container">
+
+        <!-- Filters Section -->
+        <section class="filters-section">
+            <h2 class="section-title" data-i18n="filters.title">Filters</h2>
+
+            <div class="filters-grid">
+                <!-- Period Filter -->
+                <div class="filter-group">
+                    <label for="periodFilter" data-i18n="filters.period.label">Period</label>
+                    <select id="periodFilter" class="filter-select">
+                        <option value="all" data-i18n="filters.period.all">All Time</option>
+                        <option value="month" data-i18n="filters.period.month">This Month</option>
+                        <option value="quarter" data-i18n="filters.period.quarter">This Quarter</option>
+                        <option value="year" data-i18n="filters.period.year" selected>This Year</option>
+                        <option value="custom" data-i18n="filters.period.custom">Custom Range</option>
+                    </select>
+                </div>
+
+                <!-- Custom Date Range (hidden by default) -->
+                <div id="customDateRange" class="filter-group" style="display: none;">
+                    <label for="startDate" data-i18n="filters.date.start">Start Date</label>
+                    <input type="date" id="startDate" class="filter-input">
+                    <label for="endDate" data-i18n="filters.date.end">End Date</label>
+                    <input type="date" id="endDate" class="filter-input">
+                </div>
+
+                <!-- Invoice Type Filter -->
+                <div class="filter-group">
+                    <label for="typeFilter" data-i18n="filters.type.label">Invoice Type</label>
+                    <select id="typeFilter" class="filter-select">
+                        <option value="all" data-i18n="filters.type.all">All Types</option>
+                        <option value="voyages_aeriens" data-i18n="category.voyages_aeriens">Air Travel</option>
+                        <option value="transport_routier" data-i18n="category.transport_routier">Road Transport</option>
+                        <option value="energie" data-i18n="category.energie">Energy</option>
+                        <option value="materiaux" data-i18n="category.materiaux">Materials</option>
+                        <option value="services" data-i18n="category.services">Services</option>
+                        <option value="equipements" data-i18n="category.equipements">Equipment</option>
+                        <option value="autres" data-i18n="category.autres">Other</option>
+                    </select>
+                </div>
+
+                <!-- Sector Filter -->
+                <div class="filter-group">
+                    <label for="sectorFilter" data-i18n="filters.sector.label">Business Sector</label>
+                    <select id="sectorFilter" class="filter-select">
+                        <option value="all" data-i18n="filters.sector.all">All Sectors</option>
+                        <option value="tech" data-i18n="filters.sector.tech">Technology</option>
+                        <option value="retail" data-i18n="filters.sector.retail">Retail</option>
+                        <option value="manufacturing" data-i18n="filters.sector.manufacturing">Manufacturing</option>
+                        <option value="services" data-i18n="filters.sector.services">Services</option>
+                        <option value="transport" data-i18n="filters.sector.transport">Transportation</option>
+                    </select>
+                </div>
+
+                <!-- Apply Filters Button -->
+                <div class="filter-group filter-actions">
+                    <button id="applyFilters" class="btn-primary" data-i18n="filters.apply">
+                        Apply Filters
+                    </button>
+                    <button id="resetFilters" class="btn-secondary" data-i18n="filters.reset">
+                        Reset
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- KPI Cards -->
+        <section class="kpi-section">
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-icon">🌍</div>
+                    <div class="kpi-content">
+                        <h3 class="kpi-label" data-i18n="kpi.totalEmissions">Total Emissions</h3>
+                        <p class="kpi-value" id="kpiTotalEmissions">0 kg CO₂e</p>
+                        <span class="kpi-change" id="kpiEmissionsChange">-</span>
+                    </div>
+                </div>
+
+                <div class="kpi-card">
+                    <div class="kpi-icon">📄</div>
+                    <div class="kpi-content">
+                        <h3 class="kpi-label" data-i18n="kpi.invoicesCount">Invoices Analyzed</h3>
+                        <p class="kpi-value" id="kpiInvoicesCount">0</p>
+                        <span class="kpi-change" id="kpiInvoicesChange">-</span>
+                    </div>
+                </div>
+
+                <div class="kpi-card">
+                    <div class="kpi-icon">📊</div>
+                    <div class="kpi-content">
+                        <h3 class="kpi-label" data-i18n="kpi.avgEmissions">Average per Invoice</h3>
+                        <p class="kpi-value" id="kpiAvgEmissions">0 kg CO₂e</p>
+                        <span class="kpi-change" id="kpiAvgChange">-</span>
+                    </div>
+                </div>
+
+                <div class="kpi-card">
+                    <div class="kpi-icon">🎯</div>
+                    <div class="kpi-content">
+                        <h3 class="kpi-label" data-i18n="kpi.carbonScore">Carbon Score</h3>
+                        <p class="kpi-value" id="kpiCarbonScore">0/100</p>
+                        <span class="kpi-change" id="kpiScoreChange">-</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Charts Section -->
+        <section class="charts-section">
+
+            <!-- Emissions by Month -->
+            <div class="chart-card chart-card-large">
+                <div class="chart-header">
+                    <h3 class="chart-title" data-i18n="charts.monthly.title">Monthly Emissions</h3>
+                    <p class="chart-subtitle" data-i18n="charts.monthly.subtitle">Track your carbon footprint over time</p>
+                </div>
+                <div class="chart-container">
+                    <canvas id="monthlyChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Emissions by Category -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title" data-i18n="charts.category.title">Emissions by Category</h3>
+                    <p class="chart-subtitle" data-i18n="charts.category.subtitle">Distribution of your emissions</p>
+                </div>
+                <div class="chart-container">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Emissions by Supplier -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title" data-i18n="charts.supplier.title">Top Suppliers by Emissions</h3>
+                    <p class="chart-subtitle" data-i18n="charts.supplier.subtitle">Identify high-impact suppliers</p>
+                </div>
+                <div class="chart-container">
+                    <canvas id="supplierChart"></canvas>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Data Table Section -->
+        <section class="table-section">
+            <div class="table-header">
+                <h2 class="section-title" data-i18n="table.title">Detailed Invoices</h2>
+                <div class="table-actions">
+                    <input type="text" id="searchTable" class="table-search" placeholder="Search..." data-i18n-placeholder="table.search">
+                    <select id="sortTable" class="table-sort">
+                        <option value="date-desc" data-i18n="table.sort.dateDesc">Date (Newest)</option>
+                        <option value="date-asc" data-i18n="table.sort.dateAsc">Date (Oldest)</option>
+                        <option value="emissions-desc" data-i18n="table.sort.emissionsDesc">Emissions (High to Low)</option>
+                        <option value="emissions-asc" data-i18n="table.sort.emissionsAsc">Emissions (Low to High)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-container">
+                <table class="data-table" id="invoicesTable">
+                    <thead>
+                        <tr>
+                            <th data-i18n="table.header.date">Date</th>
+                            <th data-i18n="table.header.supplier">Supplier</th>
+                            <th data-i18n="table.header.category">Category</th>
+                            <th data-i18n="table.header.amount">Amount</th>
+                            <th data-i18n="table.header.emissions">Emissions</th>
+                            <th data-i18n="table.header.impact">Impact</th>
+                        </tr>
+                    </thead>
+                    <tbody id="invoicesTableBody">
+                        <!-- Data will be populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="table-pagination" id="tablePagination">
+                <!-- Pagination will be added by JavaScript -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="dashboard-footer">
+        <p data-i18n="footer.copyright">© 2025 Green App - Carbon Analytics Platform</p>
+        <p data-i18n="footer.tagline">Measure, analyze, reduce your carbon footprint</p>
+    </footer>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="loading-spinner"></div>
+        <p data-i18n="loading.message">Loading data...</p>
+    </div>
+
+    <!-- Scripts -->
+    <script src="lang.js"></script>
+    <script src="dashboard.js"></script>
+    <script src="export.js"></script>
+</body>
+</html>
